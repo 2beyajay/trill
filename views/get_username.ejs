@@ -1,0 +1,23 @@
+<%- include('./includes/head.ejs') %>
+
+    <title><%= docTitle %></title>
+
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/forms.css">
+</head>
+
+<body>
+
+    <h1>Enter your LastFM username</h1>
+
+    <form action="/" method="POST">
+        <div class="form-control">
+            <label for="lastfmUsername">LastFM username</label>
+            <input autofocus type="text" name="lastfmUsername" id="lastfmUsername">
+        </div>
+
+        <button class="btn" type="submit">Call API</button>
+    </form>
+
+
+<%- include('./includes/end.ejs') %>

@@ -22,9 +22,9 @@ class Credentials {
 	constructor(username, fromTimestamp, page) {
 		this.user = username;
 		this.from = fromTimestamp;
-		this.page = 1;
-		this.period = '7days',
-			this.limit = 10
+		this.page = page;
+		this.period = '7days';
+		this.limit = 200;
 
 		// this.url = `http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${this.user}&period=7days&api_key=b8c9f662a983905faafe02bc920630da&format=json&limit=${this.limit}&from=${this.from}`;
 
@@ -52,7 +52,7 @@ exports.postCall = (req, res, next) => {
 
 	let trillUTS = 0;
 
-	let tempTrillUTS = 1596000731;
+	let tempTrillUTS = 1595000731;
 
 	getTrilUts()
 		.then(([tUts]) => {
@@ -63,7 +63,7 @@ exports.postCall = (req, res, next) => {
 			}
 		})
 		.then(() => {
-			let creds = new Credentials(req.body.lastfmUsername, tempTrillUTS)
+			let creds = new Credentials(req.body.lastfmUsername, tempTrillUTS, 1)
 			creds.user = req.body.lastfmUsername
 			creds.updateURL()
 			callApi(creds);
@@ -99,23 +99,19 @@ function callApi(creds) {
 	let totalPages = 1;
 
 
+	(async () => {
+		do {
+			const {body} = await got(creds.url);
+			console.log(creds.url);
 
-
-
-		(async () => {
-			do {
-				const {body} = await got(creds.url);
-
-				totalPages = JSON.parse(body).recenttracks['@attr'].totalPages;
-				console.log(`totalPages: ${totalPages}`);
-				console.log(`currentPage: ${creds.page}`);
-				insertScrobbles(JSON.parse(body).recenttracks.track)
-				creds.page++;
-			} while (creds.page <= totalPages);
-
-				
-			
-		})();
+			totalPages = JSON.parse(body).recenttracks['@attr'].totalPages;
+			console.log(`totalPages: ${totalPages}`);
+			console.log(`currentPage: ${creds.page}`);
+			insertScrobbles(JSON.parse(body).recenttracks.track)
+			creds.page++;
+			creds.updateURL();
+		} while (creds.page <= totalPages);
+	})();
 
 
 	/* do {

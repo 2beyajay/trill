@@ -73,7 +73,7 @@ exports.postCall = (req, res, next) => {
 	getTrilUts()
 		.then(([tUts]) => {
 			if (!(tUts === undefined || tUts.length == 0)) {
-				trillUTS = tUts[0].trill_uts;
+				// trillUTS = tUts[0].trill_uts;
 			}
 		})
 		.then(() => {
@@ -101,7 +101,9 @@ function callApi(creds) {
 
 	(async () => {
 		do {
-			const {body} = await got(creds.url);
+			const {
+				body
+			} = await got(creds.url);
 			console.log(creds.url);
 
 			totalPages = JSON.parse(body).recenttracks['@attr'].totalPages;
@@ -112,30 +114,6 @@ function callApi(creds) {
 			creds.updateURL();
 		} while (creds.page <= totalPages);
 	})();
-
-
-	/* do {
-		let data = '';
-
-		console.log(creds.url);
-
-		requests(creds.url)
-			.on('data', (chunk) => {
-				data += chunk;
-			})
-			.on('end', () => {
-				totalPages = JSON.parse(data).recenttracks['@attr'].totalPages;
-				console.log(`totalPages: ${totalPages}`);
-				console.log(`currentPage: ${creds.page}`);
-				insertScrobbles(JSON.parse(data).recenttracks.track)
-			}).on("error", (err) => {
-				console.log("Error: " + err);
-			});
-
-		creds.page++;
-		creds.updateURL();
-		console.log(creds.page);
-	} while (creds.page <= totalPages); */
 }
 
 
@@ -150,6 +128,18 @@ function insertScrobbles(allTracks) {
 
 		const imageUrl = imageLg[0]['#text']
 
+		let duration = 180000;
+
+		if (allTracks[i].artist['#text'] && allTracks[i].name) {
+			let urlForDuration = `http://ws.audioscrobbler.com/2.0/?method=track.getInfo&api_key=b8c9f662a983905faafe02bc920630da&format=json&track=${allTracks[i].name}&artist=${allTracks[i].artist['#text']}`;
+
+			(async () => {
+				const {body} = await got(urlForDuration);
+				duration = JSON.parse(body).track.duration;
+				console.log(`URL for duration: ${urlForDuration}`);
+				console.log(`duration: ${duration}`);
+			})();
+		}
 
 		if (!allTracks[i].date) {
 			allTracks[i].date = {}
@@ -158,8 +148,20 @@ function insertScrobbles(allTracks) {
 		}
 
 		db.execute(
-			'INSERT INTO scrobbles (title, album, artist, image_url, lastfm_uts, lastfm_uts_formatted, trill_uts) VALUES (?, ?, ?, ?, ?, ?, ?)',
-			[allTracks[i].name, allTracks[i].album['#text'], allTracks[i].artist['#text'], imageUrl, allTracks[i].date.uts, allTracks[i].date['#text'], timestamp]
+			'INSERT INTO scrobbles (title, track_mbid, album, album_mbid, artist, artist_mbid, duration, image_url, lastfm_uts, lastfm_uts_formatted, trill_uts) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+			[
+				allTracks[i].name,
+				allTracks[i].mbid,
+				allTracks[i].album['#text'],
+				allTracks[i].album.mbid,
+				allTracks[i].artist['#text'],
+				allTracks[i].artist.mbid,
+				duration,
+				imageUrl,
+				allTracks[i].date.uts,
+				allTracks[i].date['#text'],
+				timestamp
+			]
 		)
 
 	}

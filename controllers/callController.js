@@ -1,19 +1,3 @@
-const Tracks = require('../models/Tracks');
-
-
-const requests = require('requests');
-const path = require('path');
-const express = require('express');
-const { DateTime } = require('luxon');
-const moment = require('moment');
-// const Datastore = require('nedb');
-const db = require('../util/database')
-
-// const database = new Datastore(path.join(__dirname, '../', 'data', 'tracks.db'));
-// database.loadDatabase();
-
-const app = express();
-
 /* let parameters = {
 	method: "user.getrecenttracks",
 	user: "ajaydubey541997",
@@ -26,30 +10,39 @@ const app = express();
 let url = `http://ws.audioscrobbler.com/2.0/?method=${parameters.method}&user=${parameters.user}&period=${parameters.period}&api_key=${parameters.api_key}&format=${parameters.format}&limit=${parameters.limit}`; 
  */
 
+const requests = require('requests');
+const express = require('express');
+const db = require('../util/database')
+
+const app = express();
+
+
 
 class Credentials {
-	constructor(username, fromTimestamp, page){
+	constructor(username, fromTimestamp, page) {
 		this.user = username;
 		this.from = fromTimestamp;
 		this.page = 1;
-		this.period = '7days'
+		this.period = '7days',
+		this.limit = 10
+
 		// this.url = `http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${this.user}&period=7days&api_key=b8c9f662a983905faafe02bc920630da&format=json&limit=${this.limit}&from=${this.from}`;
-		
-		this.url = `http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${this.user}&period=${this.period}&api_key=b8c9f662a983905faafe02bc920630da&format=json&limit=200&from=${this.from}&page=${this.page}`;
-		
-		console.log(this.url);
+
+		this.url = `http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${this.user}&api_key=b8c9f662a983905faafe02bc920630da&format=json&limit=${this.limit}&from=${this.from}&page=${this.page}`;
+
+		this.updateURL();
 
 		return this.url;
 	}
+
+	updateURL() {
+		this.url = `http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${this.user}&api_key=b8c9f662a983905faafe02bc920630da&format=json&limit=${this.limit}&from=${this.from}&page=${this.page}`;
+	}
 }
-
-exports.filteredData = [];
-
 
 
 
 exports.getCall = (req, res, next) => {
-	// res.sendFile(path.join(__dirname, '../', 'views', 'index.html'));
 	res.render('get_username', {
 		docTitle: 'LastFM username',
 	})
@@ -59,44 +52,40 @@ exports.postCall = (req, res, next) => {
 
 	let trillUTS = 0;
 
+	let tempTrillUTS = 1596000731;
+
 	getTrilUts()
-		.then(([trillUts]) => {
-			if(this.trillUts) {
-				trillUTS = trillUts[0]
+		.then(([tUts]) => {
+			if (tUts === undefined || tUts.length == 0) {
+				trillUTS = tempTrillUTS;
+			} else {
+				trillUTS = tUts[0].trill_uts;
 			}
 		})
 		.then(() => {
-			console.log(trillUTS);
-			let creds = new Credentials(req.body.lastfmUsername, trillUTS)
+			let creds = new Credentials(req.body.lastfmUsername, tempTrillUTS)
 			creds.user = req.body.lastfmUsername
+			creds.updateURL()
 			callApi(creds);
 		})
-	
-	
 
 
-	// let creds = new Credentials(req.body.lastfmUsername, trillUTS)
-	// creds.user = req.body.lastfmUsername
-	// console.log(creds.url + ' from the postCall' );
-
-	// callApi(creds);
-	// res.redirect('/charts');
 	res.redirect('/');
 }
 
-function getTrilUts(){
+function getTrilUts() {
 	return db.execute('SELECT trill_uts from scrobbles ORDER BY trill_uts DESC LIMIT 1')
 }
 
 
 exports.getLoading = (req, res, next) => {
-    res.render('loading', {
+	res.render('loading', {
 		docTitle: 'Loading....',
 	})
 }
 
 exports.getCharts = (req, res, next) => {
-    res.render('show_charts', {
+	res.render('show_charts', {
 		docTitle: 'Your Charts',
 	})
 }
@@ -105,39 +94,50 @@ exports.getCharts = (req, res, next) => {
 
 
 
-function callApi(creds){
-	// console.log(creds.url + ' from the callApi'); 
-	let data = '';
+function callApi(creds) {
 
-	requests(creds.url)
-	.on('data', (chunk) => {
-		data += chunk;
-	})
-	.on('end', () => {
-		
-		// filterData(JSON.parse(data).recenttracks.track)
-		insertScrobbles(JSON.parse(data).recenttracks.track)
-	}).on("error", (err) => {
-		console.log("Error: " + err);
-	});
+	creds.updateURL();
+
+	let totalPages = 1;
+
+	do {
+		let data = '';
+
+		console.log(creds.url);
+
+		requests(creds.url)
+			.on('data', (chunk) => {
+				data += chunk;
+			})
+			.on('end', () => {
+				totalPages = JSON.parse(data).recenttracks['@attr'].totalPages;
+				console.log(`totalPages: ${totalPages}`);
+				console.log(`currentPage: ${creds.page}`);
+				insertScrobbles(JSON.parse(data).recenttracks.track)
+			}).on("error", (err) => {
+				console.log("Error: " + err);
+			});
+
+		creds.page++;
+		creds.updateURL();
+		console.log(creds.page);
+	} while (creds.page <= totalPages);
 }
 
 
-function insertScrobbles(allTracks){
+function insertScrobbles(allTracks) {
 
 	const timestamp = Date.now() / 1000;
 
 	for (let i = 0; i < allTracks.length; i++) {
 		console.log(i);
-		
-		const imageLg = allTracks[i].image.filter(img => img.size === 'large' )
+
+		const imageLg = allTracks[i].image.filter(img => img.size === 'large')
 
 		const imageUrl = imageLg[0]['#text']
 
-		console.log(allTracks[i].date);
 
-
-		if(!allTracks[i].date){
+		if (!allTracks[i].date) {
 			allTracks[i].date = {}
 			allTracks[i].date.uts = 0;
 			allTracks[i].date['#text'] = '';
@@ -149,36 +149,4 @@ function insertScrobbles(allTracks){
 		)
 
 	}
-}
-
-
-function filterData(allTracks){
-	const timestamp = Date.now();
-
-	for (let i = 0; i < allTracks.length; i++) {
-		console.log(i);
-		console.log(allTracks[i].name);
-		
-
-	}
-
-	/* const trackName = allTracks.map((track) => track.name)
-	const albumName = allTracks.map((track) => track.album['#text'])
-	const artitstName = allTracks.map(track => track.artist['#text'])
-
-	const whenDate = allTracks.map(track => track.date)
-	const whenUTS = whenDate.map(date => date['uts'])
-	const whenFormatted = whenDate.map(date => date['#text'])
-
-	const imageO = allTracks.map(track => track.image)
-
-	let imageUrl = [];
-	imageO.forEach(imgO => {
-		imgO.filter(img => {
-			img.size == 'large'
-			if (img.size == 'large') {
-				imageUrl.push(img['#text']);
-			}
-		})
-	}); */
 }

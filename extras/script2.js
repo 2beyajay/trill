@@ -15,3 +15,48 @@ window.onload = function () {
         console.log(data);
     });
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function filterData(allTracks) {
+	const timestamp = Date.now();
+
+	for (let i = 0; i < allTracks.length; i++) {
+		console.log(i);
+		console.log(allTracks[i].name);
+
+
+	}
+
+	/* const trackName = allTracks.map((track) => track.name)
+	const albumName = allTracks.map((track) => track.album['#text'])
+	const artitstName = allTracks.map(track => track.artist['#text'])
+
+	const whenDate = allTracks.map(track => track.date)
+	const whenUTS = whenDate.map(date => date['uts'])
+	const whenFormatted = whenDate.map(date => date['#text'])
+
+	const imageO = allTracks.map(track => track.image)
+
+	let imageUrl = [];
+	imageO.forEach(imgO => {
+		imgO.filter(img => {
+			img.size == 'large'
+			if (img.size == 'large') {
+				imageUrl.push(img['#text']);
+			}
+		})
+	}); */
+}

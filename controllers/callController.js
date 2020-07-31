@@ -17,6 +17,26 @@ const db = require('../util/database')
 const app = express();
 
 
+exports.getCall = (req, res, next) => {
+	res.render('get_username', {
+		docTitle: 'LastFM username',
+	})
+}
+
+
+exports.getLoading = (req, res, next) => {
+	res.render('loading', {
+		docTitle: 'Loading....',
+	})
+}
+
+exports.getCharts = (req, res, next) => {
+	res.render('show_charts', {
+		docTitle: 'Your Charts',
+	})
+}
+
+
 
 class Credentials {
 	constructor(username, fromTimestamp, page) {
@@ -42,56 +62,36 @@ class Credentials {
 
 
 
-exports.getCall = (req, res, next) => {
-	res.render('get_username', {
-		docTitle: 'LastFM username',
-	})
-}
-
 exports.postCall = (req, res, next) => {
 
 	let trillUTS = 0;
+	// 1595981800 should be the smallest trill_uts if all goes well
+	// if not, this is where things will start from
 
-	let tempTrillUTS = 1595000731;
+	// let tempTrillUTS = 1595000731;
 
 	getTrilUts()
 		.then(([tUts]) => {
-			if (tUts === undefined || tUts.length == 0) {
-				trillUTS = tempTrillUTS;
-			} else {
+			if (!(tUts === undefined || tUts.length == 0)) {
 				trillUTS = tUts[0].trill_uts;
 			}
 		})
 		.then(() => {
-			let creds = new Credentials(req.body.lastfmUsername, tempTrillUTS, 1)
+			let creds = new Credentials(req.body.lastfmUsername, trillUTS, 1)
 			creds.user = req.body.lastfmUsername
-			creds.updateURL()
+			creds.updateURL();
 			callApi(creds);
 		})
+		.catch(err => console.log(err))
 
 
 	res.redirect('/');
 }
 
+
 function getTrilUts() {
 	return db.execute('SELECT trill_uts from scrobbles ORDER BY trill_uts DESC LIMIT 1')
 }
-
-
-exports.getLoading = (req, res, next) => {
-	res.render('loading', {
-		docTitle: 'Loading....',
-	})
-}
-
-exports.getCharts = (req, res, next) => {
-	res.render('show_charts', {
-		docTitle: 'Your Charts',
-	})
-}
-
-
-
 
 
 function callApi(creds) {

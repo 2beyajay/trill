@@ -10,7 +10,7 @@
 let url = `http://ws.audioscrobbler.com/2.0/?method=${parameters.method}&user=${parameters.user}&period=${parameters.period}&api_key=${parameters.api_key}&format=${parameters.format}&limit=${parameters.limit}`; 
  */
 
-const requests = require('requests');
+const got = require('got')
 const express = require('express');
 const db = require('../util/database')
 
@@ -24,7 +24,7 @@ class Credentials {
 		this.from = fromTimestamp;
 		this.page = 1;
 		this.period = '7days',
-		this.limit = 10
+			this.limit = 10
 
 		// this.url = `http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${this.user}&period=7days&api_key=b8c9f662a983905faafe02bc920630da&format=json&limit=${this.limit}&from=${this.from}`;
 
@@ -96,11 +96,29 @@ exports.getCharts = (req, res, next) => {
 
 function callApi(creds) {
 
-	creds.updateURL();
-
 	let totalPages = 1;
 
-	do {
+
+
+
+
+		(async () => {
+			do {
+				const {body} = await got(creds.url);
+
+				totalPages = JSON.parse(body).recenttracks['@attr'].totalPages;
+				console.log(`totalPages: ${totalPages}`);
+				console.log(`currentPage: ${creds.page}`);
+				insertScrobbles(JSON.parse(body).recenttracks.track)
+				creds.page++;
+			} while (creds.page <= totalPages);
+
+				
+			
+		})();
+
+
+	/* do {
 		let data = '';
 
 		console.log(creds.url);
@@ -121,7 +139,7 @@ function callApi(creds) {
 		creds.page++;
 		creds.updateURL();
 		console.log(creds.page);
-	} while (creds.page <= totalPages);
+	} while (creds.page <= totalPages); */
 }
 
 

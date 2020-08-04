@@ -1,9 +1,9 @@
 <%- include('./includes/head.ejs') %>
 
-    <title><%= docTitle %></title>
+<title><%= docTitle %></title>
 
-    <link rel="stylesheet" href="/css/main.css">
-    <link rel="stylesheet" href="/css/forms.css">
+<link rel="stylesheet" href="/css/main.css">
+<link rel="stylesheet" href="/css/forms.css">
 </head>
 
 <body>
@@ -11,4 +11,30 @@
     <h1>Charts will load on this page</h1>
     <a href="/">Home</a>
 
-<%- include('./includes/end.ejs') %>
+    <%- include('./includes/end.ejs') %>
+
+    <canvas id="myChart"></canvas>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
+
+    <script>
+        var ctx = document.getElementById('myChart').getContext('2d');
+        var chart = new Chart(ctx, {
+            // The type of chart we want to create
+            type: 'line',
+
+            // The data for our dataset
+            data: {
+                labels: ['January', 'February', 'March', 'April', 'May', 'June', 'July'],
+                datasets: [{
+                    label: 'My First dataset',
+                    backgroundColor: 'rgb(255, 99, 132)',
+                    borderColor: 'rgb(255, 99, 132)',
+                    data: [<%= chartData %>]
+                }]
+            },
+
+            // Configuration options go here
+            options: {}
+        });
+    </script>

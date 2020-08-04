@@ -12,7 +12,9 @@ let url = `http://ws.audioscrobbler.com/2.0/?method=${parameters.method}&user=${
 
 const got = require('got')
 const express = require('express');
-const db = require('../util/database')
+const db = require('../util/database');
+
+
 
 const app = express();
 
@@ -23,17 +25,24 @@ exports.getCall = (req, res, next) => {
 	})
 }
 
-
 exports.getLoading = (req, res, next) => {
 	res.render('loading', {
 		docTitle: 'Loading....',
 	})
 }
 
+
+let chartData = [1,2,3,4];
+
 exports.getCharts = (req, res, next) => {
-	res.render('show_charts', {
-		docTitle: 'Your Charts',
-	})
+	if (chartData){
+		res.render('show_charts', {
+			docTitle: 'Your Charts',
+			chartData: chartData.toString()
+		})
+	} else {
+		res.redirect('/loading');
+	}
 }
 
 
@@ -46,12 +55,9 @@ class Credentials {
 		this.period = '7days';
 		this.limit = 200;
 
-		// this.url = `http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${this.user}&period=7days&api_key=b8c9f662a983905faafe02bc920630da&format=json&limit=${this.limit}&from=${this.from}`;
-
 		this.url = `http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${this.user}&api_key=b8c9f662a983905faafe02bc920630da&format=json&limit=${this.limit}&from=${this.from}&page=${this.page}`;
 
 		this.updateURL();
-
 		return this.url;
 	}
 
@@ -65,15 +71,16 @@ class Credentials {
 exports.postCall = (req, res, next) => {
 
 	let trillUTS = 0;
-	// 1595981800 should be the smallest trill_uts if all goes well
-	// if not, this is where things will start from
 
 	// let tempTrillUTS = 1595000731;
 
 	getTrilUts()
 		.then(([tUts]) => {
 			if (!(tUts === undefined || tUts.length == 0)) {
-				// trillUTS = tUts[0].trill_uts;
+				trillUTS = tUts[0].trill_uts;
+				res.redirect('/loading');
+			} else{
+				res.redirect('/charts');
 			}
 		})
 		.then(() => {
@@ -82,10 +89,10 @@ exports.postCall = (req, res, next) => {
 			creds.updateURL();
 			callApi(creds);
 		})
+		.then(() => {
+		})
 		.catch(err => console.log(err))
-
-
-	res.redirect('/');
+		
 }
 
 
@@ -130,7 +137,7 @@ function insertScrobbles(allTracks) {
 
 		let duration = 180000;
 
-		if (allTracks[i].artist['#text'] && allTracks[i].name) {
+		/* if (allTracks[i].artist['#text'] && allTracks[i].name) {
 			let urlForDuration = `http://ws.audioscrobbler.com/2.0/?method=track.getInfo&api_key=b8c9f662a983905faafe02bc920630da&format=json&track=${allTracks[i].name}&artist=${allTracks[i].artist['#text']}`;
 
 			(async () => {
@@ -139,7 +146,7 @@ function insertScrobbles(allTracks) {
 				console.log(`URL for duration: ${urlForDuration}`);
 				console.log(`duration: ${duration}`);
 			})();
-		}
+		} */
 
 		if (!allTracks[i].date) {
 			allTracks[i].date = {}

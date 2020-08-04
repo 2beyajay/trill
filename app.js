@@ -26,7 +26,7 @@ app.set('views', 'views');
 app.use(express.static('public'));
 
 app.use(bodyParser.urlencoded({
-	extended: false
+  extended: false
 }));
 
 app.use(callRoutes);
@@ -35,4 +35,4 @@ app.use(callRoutes);
 app.use(errorController.get404)
 
 
-app.listen(3001);
+app.listen(3000);

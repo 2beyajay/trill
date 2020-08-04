@@ -31,9 +31,15 @@ exports.getLoading = (req, res, next) => {
 	})
 }
 
+exports.getComeback = (req, res, next) => {
+	res.render('comeback', {
+		docTitle: 'Comeback in 10 min',
+	})
+}
 
-let chartData = [1,2,3,4];
 
+
+let chartData = [1];
 exports.getCharts = (req, res, next) => {
 	if (chartData){
 		res.render('show_charts', {
@@ -70,21 +76,23 @@ class Credentials {
 
 exports.postCall = (req, res, next) => {
 
-	let trillUTS = 0;
+	let from = 0;
 
 	// let tempTrillUTS = 1595000731;
 
 	getTrilUts()
 		.then(([tUts]) => {
-			if (!(tUts === undefined || tUts.length == 0)) {
-				trillUTS = tUts[0].trill_uts;
-				res.redirect('/loading');
+			console.log(tUts);
+
+			if(tUts === undefined || tUts.length == 0){
+				res.redirect('/comeback');
 			} else{
+				from = tUts[0].trill_uts;
 				res.redirect('/charts');
 			}
 		})
 		.then(() => {
-			let creds = new Credentials(req.body.lastfmUsername, trillUTS, 1)
+			let creds = new Credentials(req.body.lastfmUsername, from, 1)
 			creds.user = req.body.lastfmUsername
 			creds.updateURL();
 			callApi(creds);
